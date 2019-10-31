@@ -9,6 +9,8 @@ namespace ExBitStream
     {
         internal List<byte> Buffer { get; set; }
 
+        public int CountOfBits { get; internal set; }
+
         public BitStream()
         {
             Buffer = new List<byte>();
@@ -19,21 +21,9 @@ namespace ExBitStream
             return Buffer.ToArray();
         }
 
-        public string ToBitString()
+        public string ToByteString()
         {
-            string str = "";
-            for(int i = 0; i < Buffer.Count; i++)
-            {
-                for(int j = 7; j >= 0; j--)
-                {
-                    if ((Buffer[i] & 1 << j) != 0)
-                        str += "1";
-                    else
-                        str += "0";
-                }
-                str += " ";
-            }
-            return str;
+            return Buffer.ToByteString();
         }
     }
 
@@ -52,6 +42,30 @@ namespace ExBitStream
                 (b & 0x02) != 0 ? '1' : '0',
                 (b & 0x01) != 0 ? '1' : '0',
             });
+        }
+
+        public static string ToByteString(this IList<byte> bytes)
+        {
+            if (bytes.Count <= 0)
+                return "";
+            string byteStr = bytes[0].ToBitString();
+            for (int i = 1; i < bytes.Count; i++)
+            {
+                byteStr += " " + bytes[i].ToBitString();
+            }
+            return byteStr;
+        }
+
+        public static string ToByteString(this byte[] bytes)
+        {
+            if (bytes.Length <= 0)
+                return "";
+            string byteStr = bytes[0].ToBitString();
+            for(int i = 1; i < bytes.Length; i++)
+            {
+                byteStr += " " + bytes[i].ToBitString();
+            }
+            return byteStr;
         }
     }
     

@@ -14,30 +14,48 @@ namespace ExBitStream
     /// BitStream class.</remarks>
     public class BitStreamWriter : IBitWriter
     {
-        // the buffer that the bits are written into
+        /// <summary>
+        /// The target stream
+        /// </summary>
+        private BitStream _targetStream;
+
+        /// <summary>
+        /// The buffer that the bits are written into
+        /// </summary>
         private List<byte> _targetBuffer = null;
 
-        // number of free bits remaining in the last byte added to the target buffer
+        /// <summary>
+        /// Number of free bits remaining in the last byte added to the target buffer
+        /// </summary>
         private int _remaining = 0;
 
         public BitStreamWriter(BitStream stream)
         {
+            _targetStream = stream;
             _targetBuffer = stream.Buffer;
+            _remaining = (Native.BitsPerByte - (stream.CountOfBits % Native.BitsPerByte)) % Native.BitsPerByte;
         }
 
-        private void _Write<TValue, TShifter>(TValue value, TShifter shifter, int countOfBits) where TShifter : IByteUtil<TValue>
+        /// <summary>
+        /// Write bits into target buffer
+        /// </summary>
+        /// <typeparam name="TValue">value type</typeparam>
+        /// <typeparam name="TUtil">operation utility type</typeparam>
+        /// <param name="value">value which will be written</param>
+        /// <param name="util">byte operation utility</param>
+        /// <param name="countOfBits">bits of value</param>
+        private void _Write<TValue, TUtil>(TValue value, TUtil util, int countOfBits) where TUtil : IByteUtil<TValue>
         {
-            // calculate the number of full bytes
-            //   Example: 10 bits would require 1 full byte
+            // calculate the value of full bytes
             int fullBytes = countOfBits / Native.BitsPerByte;
 
-            // calculate the number of bits that spill beyond the full byte boundary
-            //   Example: 10 buttons would require 2 extra bits (8 fit in a full byte)
+            // calculate the value of bits that spill beyond the full byte boundary
             int bitsToWrite = countOfBits % Native.BitsPerByte;
 
+            // foreach bytes of value
             for (; fullBytes >= 0; fullBytes--)
             {
-                byte byteOfData = shifter.ShiftRight(value, fullBytes * Native.BitsPerByte);
+                byte byteOfData = util.ShiftRight(value, fullBytes * Native.BitsPerByte);
                 //
                 // write 8 or less bytes to the bitwriter
                 // checking for 0 handles the case where we're writing 8, 16 or 24 bytes
@@ -54,6 +72,10 @@ namespace ExBitStream
             }
         }
 
+        /// <summary>
+        /// Write a bit of boolean into the stream
+        /// </summary>
+        /// <param name="value">The boolean to read the bits from</param>
         public void Write(bool value)
         {   
             Write((byte)1, 1);
@@ -109,8 +131,14 @@ namespace ExBitStream
                 // otherwise, simply update the amount of remaining bits we have to spare
                 _remaining -= bits;
             }
+            _targetStream.CountOfBits += bits;
         }
 
+        /// <summary>
+        /// Write a specific number of bits from sbyte input into the stream
+        /// </summary>
+        /// <param name="value">The sbyte to read the bits from</param>
+        /// <param name="bits">The number of bits to read</param>
         public void Write(sbyte value, int bits = Native.BitsPerByte)
         {
             // validate that a subset of the bits in a single byte are being written
@@ -156,8 +184,14 @@ namespace ExBitStream
                 // otherwise, simply update the amount of remaining bits we have to spare
                 _remaining -= bits;
             }
+            _targetStream.CountOfBits += bits;
         }
 
+        /// <summary>
+        /// Write a specific number of bits from short input into the stream
+        /// </summary>
+        /// <param name="value">The short to read the bits from</param>
+        /// <param name="bits">The number of bits to read</param>
         public void Write(short value, int bits = Native.BitsPerShort)
         {
             // validate that a subset of the bits in a single byte are being written
@@ -165,33 +199,14 @@ namespace ExBitStream
                 throw new ArgumentOutOfRangeException("countOfBits", bits, "Count of bits must be greater than zero and less than size of short.");
 
 
-            // calculate the number of full bytes
-            //   Example: 10 bits would require 1 full byte
-            int fullBytes = bits / Native.BitsPerByte;
-
-            // calculate the number of bits that spill beyond the full byte boundary
-            //   Example: 10 buttons would require 2 extra bits (8 fit in a full byte)
-            int bitsToWrite = bits % Native.BitsPerByte;
-
-            for (; fullBytes >= 0; fullBytes--)
-            {
-                byte byteOfData = (byte)(value >> (fullBytes * Native.BitsPerByte));
-                //
-                // write 8 or less bytes to the bitwriter
-                // checking for 0 handles the case where we're writing 8, 16 or 24 bytes
-                // and bitsToWrite is initialize to zero
-                //
-                if (bitsToWrite > 0)
-                {
-                    Write(byteOfData, bitsToWrite);
-                }
-                if (fullBytes > 0)
-                {
-                    bitsToWrite = Native.BitsPerByte;
-                }
-            }
+            _Write<short, ShortUtil>(value, ByteUtilManager.ShortUtil, bits);
         }
 
+        /// <summary>
+        /// Write a specific number of bits from ushort input into the stream
+        /// </summary>
+        /// <param name="value">The ushort to read the bits from</param>
+        /// <param name="bits">The number of bits to read</param>
         public void Write(ushort value, int bits = Native.BitsPerShort)
         {
             // validate that a subset of the bits in a single byte are being written
@@ -199,33 +214,14 @@ namespace ExBitStream
                 throw new ArgumentOutOfRangeException("countOfBits", bits, "Count of bits must be greater than zero and less than size of ushort.");
 
 
-            // calculate the number of full bytes
-            //   Example: 10 bits would require 1 full byte
-            int fullBytes = bits / Native.BitsPerByte;
-
-            // calculate the number of bits that spill beyond the full byte boundary
-            //   Example: 10 buttons would require 2 extra bits (8 fit in a full byte)
-            int bitsToWrite = bits % Native.BitsPerByte;
-
-            for (; fullBytes >= 0; fullBytes--)
-            {
-                byte byteOfData = (byte)(value >> (fullBytes * Native.BitsPerByte));
-                //
-                // write 8 or less bytes to the bitwriter
-                // checking for 0 handles the case where we're writing 8, 16 or 24 bytes
-                // and bitsToWrite is initialize to zero
-                //
-                if (bitsToWrite > 0)
-                {
-                    Write(byteOfData, bitsToWrite);
-                }
-                if (fullBytes > 0)
-                {
-                    bitsToWrite = Native.BitsPerByte;
-                }
-            }
+            _Write<ushort, UShortUtil>(value, ByteUtilManager.UShortUtil, bits);
         }
 
+        /// <summary>
+        /// Write a specific number of bits from integer input into the stream
+        /// </summary>
+        /// <param name="value">The integer to read the bits from</param>
+        /// <param name="bits">The number of bits to read</param>
         public void Write(int value, int bits = Native.BitsPerInt)
         {
             // validate that a subset of the bits in a single byte are being written
@@ -237,32 +233,41 @@ namespace ExBitStream
         }
 
         /// <summary>
-        /// Writes the count of bits from the int to the left packed buffer
+        /// Write a specific number of bits from unsigned integer input into the stream
         /// </summary>
-        /// <param name="value"></param>
-        /// <param name="bits"></param>
+        /// <param name="value">The unsigned integer to read the bits from</param>
+        /// <param name="bits">The number of bits to read</param>
         public void Write(uint value, int bits = Native.BitsPerInt)
         {
             // validate that a subset of the bits in a single byte are being written
             if (bits <= 0 || bits > Native.BitsPerInt)
-                throw new ArgumentOutOfRangeException("countOfBits", bits, "Count of bits must be greater than zero and less than size of integer.");
+                throw new ArgumentOutOfRangeException("countOfBits", bits, "Count of bits must be greater than zero and less than size of unsigned integer.");
 
 
             UIntUtil shifter = new UIntUtil();
             _Write(value, shifter, bits);
         }
 
+        /// <summary>
+        /// Write a specific number of bits from long input into the stream
+        /// </summary>
+        /// <param name="value">The long to read the bits from</param>
+        /// <param name="bits">The number of bits to read</param>
         public void Write(long value, int bits = Native.BitsPerLong)
         {
             // validate that a subset of the bits in a single byte are being written
             if (bits <= 0 || bits > Native.BitsPerLong)
-                throw new ArgumentOutOfRangeException("countOfBits", bits, "Count of bits must be greater than zero and less than size of integer.");
-
+                throw new ArgumentOutOfRangeException("countOfBits", bits, "Count of bits must be greater than zero and less than size of long.");
 
             LongUtil shifter = new LongUtil();
             _Write(value, shifter, bits);
         }
 
+        /// <summary>
+        /// Write a specific number of bits from unsigned long input into the stream
+        /// </summary>
+        /// <param name="value">The unsigned long to read the bits from</param>
+        /// <param name="bits">The number of bits to read</param>
         public void Write(ulong value, int bits = Native.BitsPerLong)
         {
             // validate that a subset of the bits in a single byte are being written
@@ -274,18 +279,29 @@ namespace ExBitStream
             _Write(value, shifter, bits);
         }
 
-        public void Write(float value, int bits)
+        /// <summary>
+        /// Write a byte array from single input into the stream
+        /// </summary>
+        /// <param name="value">The single to read the bytes from</param>
+        public void Write(float value)
         {
             var bytes = BitConverter.GetBytes(value);
             Write(bytes);
         }
 
-        public void Write(double value, int bits)
+        /// <summary>
+        /// Write a byte array from double input into the stream
+        /// </summary>
+        /// <param name="value">The double to read the bytes from</param>
+        public void Write(double value)
         {
             var bytes = BitConverter.GetBytes(value);
             Write(bytes);
         }
-        
+
+        /// <summary>
+        /// Write a byte array into the stream
+        /// </summary>
         public void Write(byte[] buffer)
         {
             for(int i = 0; i < buffer.Length; i++)
@@ -294,6 +310,11 @@ namespace ExBitStream
             }
         }
 
+        /// <summary>
+        /// Write a specific number of bits from character input into the stream
+        /// </summary>
+        /// <param name="value">The character to read the bits from</param>
+        /// <param name="bits">The number of bits to read</param>
         public void Write(char ch, int bits = Native.BitsPerByte)
         {
             // validate that a subset of the bits in a single byte are being written
@@ -305,6 +326,10 @@ namespace ExBitStream
             _Write(ch, shifter, bits);
         }
 
+        /// <summary>
+        /// Write a byte array from character array input into the stream
+        /// </summary>
+        /// <param name="value">The character to read the bytes from</param>
         public void Write(char[] chars)
         {
             for (int i = 0; i < chars.Length; i++)
@@ -313,6 +338,10 @@ namespace ExBitStream
             }
         }
 
+        /// <summary>
+        /// Write a byte array from string input into the stream
+        /// </summary>
+        /// <param name="value">The string to read the bytes from</param>
         public void Write(string value)
         {
             var chars = value.ToCharArray();
@@ -334,8 +363,8 @@ namespace ExBitStream
         void Write(uint value, int bits);
         void Write(long value, int bits);
         void Write(ulong value, int bits);
-        void Write(float value, int bits);
-        void Write(double value, int bits);
+        void Write(float value);
+        void Write(double value);
         void Write(byte[] buffer);
         void Write(char ch, int bits);
         void Write(char[] chars);

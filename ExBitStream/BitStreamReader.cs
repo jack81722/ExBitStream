@@ -96,7 +96,7 @@ namespace ExBitStream
             return retVal;
         }
 
-        private TValue _Read<TValue, TShifter>(int indexOfBits, int countOfBits, TShifter shifter) where TShifter : IByteUtil<TValue>
+        private TValue _Read<TValue, TShifter>(int offset, int countOfBits, TShifter shifter) where TShifter : IByteUtil<TValue>
         {
             TValue retVal = default(TValue);
             while (countOfBits > 0)
@@ -108,10 +108,10 @@ namespace ExBitStream
                 }
                 //make room
                 retVal = shifter.ShiftLeft(retVal, countToRead);
-                byte b = ReadByte(indexOfBits, countToRead);
+                byte b = ReadByte(offset, countToRead);
                 retVal = shifter.OR(retVal, b);
                 countOfBits -= countToRead;
-                indexOfBits += countToRead;
+                offset += countToRead;
             }
             return retVal;
         }
@@ -136,9 +136,9 @@ namespace ExBitStream
             return ((b & 1) == 1);
         }
 
-        public bool ReadBoolean(int indexOfBits)
+        public bool ReadBoolean(int offset)
         {
-            byte b = ReadByte(indexOfBits, 1);
+            byte b = ReadByte(offset, 1);
             return ((b & 1) == 1);
         }
 
@@ -218,7 +218,7 @@ namespace ExBitStream
             return returnByte;
         }
 
-        public byte ReadByte(int indexOfBits, int countOfBits)
+        public byte ReadByte(int offset, int countOfBits)
         {
             // if the end of the stream has been reached, then throw an exception
             if (EndOfStream)
@@ -239,8 +239,8 @@ namespace ExBitStream
 
             // initialize return byte to 0 before reading from the cache
             byte returnByte = 0;
-            int indexOfByte = indexOfBits / Native.BitsPerByte;
-            int indexOfPartial = indexOfBits % Native.BitsPerByte;
+            int indexOfByte = offset / Native.BitsPerByte;
+            int indexOfPartial = offset % Native.BitsPerByte;
             byte partialByte = (byte)(_targetBuffer[indexOfByte] << indexOfPartial);
             int cbitsInPartialByte = Native.BitsPerByte - indexOfPartial;
 
@@ -301,7 +301,7 @@ namespace ExBitStream
             return result;
         }
 
-        public short ReadInt16(int indexOfBits, int countOfBits)
+        public short ReadInt16(int offset, int countOfBits)
         {
             // we only support 1-16 bits currently, not multiple bytes, and not 0 bits
             if (countOfBits > Native.BitsPerShort || countOfBits <= 0)
@@ -309,7 +309,7 @@ namespace ExBitStream
                 throw new ArgumentOutOfRangeException("countOfBits", countOfBits, "Count of bits must be greater than zero and less than size of short.");
             }
 
-            short result = _Read<short, ShortUtil>(indexOfBits, countOfBits, ByteUtilManager.ShortUtil);
+            short result = _Read<short, ShortUtil>(offset, countOfBits, ByteUtilManager.ShortUtil);
             return result;
         }
 
@@ -330,7 +330,7 @@ namespace ExBitStream
             return result;
         }
 
-        public ushort ReadUInt16(int indexOfBits, int countOfBits)
+        public ushort ReadUInt16(int offset, int countOfBits)
         {
             // we only support 1-16 bits currently, not multiple bytes, and not 0 bits
             if (countOfBits > Native.BitsPerShort || countOfBits <= 0)
@@ -338,7 +338,7 @@ namespace ExBitStream
                 throw new ArgumentOutOfRangeException("countOfBits", countOfBits, "Count of bits must be greater than zero and less than size of short.");
             }
 
-            ushort result = _Read<ushort, UShortUtil>(indexOfBits, countOfBits, ByteUtilManager.UShortUtil);
+            ushort result = _Read<ushort, UShortUtil>(offset, countOfBits, ByteUtilManager.UShortUtil);
             return result;
         }
 
@@ -354,7 +354,7 @@ namespace ExBitStream
             return result;
         }
 
-        public int ReadInt32(int indexOfBits, int countOfBits)
+        public int ReadInt32(int offset, int countOfBits)
         {
             // we only support 1-8 bits currently, not multiple bytes, and not 0 bits
             if (countOfBits > Native.BitsPerInt || countOfBits <= 0)
@@ -362,7 +362,7 @@ namespace ExBitStream
                 throw new ArgumentOutOfRangeException("countOfBits", countOfBits, "Count of bits must be greater than zero and less than size of integer.");
             }
 
-            int result = _Read<int, IntUtil>(indexOfBits, countOfBits, ByteUtilManager.IntUtil);
+            int result = _Read<int, IntUtil>(offset, countOfBits, ByteUtilManager.IntUtil);
             return result;
         }
 
@@ -381,7 +381,7 @@ namespace ExBitStream
             return result;
         }
 
-        public uint ReadUInt32(int indexOfBits, int countOfBits)
+        public uint ReadUInt32(int offset, int countOfBits)
         {
             // we only support 1-8 bits currently, not multiple bytes, and not 0 bits
             if (countOfBits > Native.BitsPerInt || countOfBits <= 0)
@@ -389,7 +389,7 @@ namespace ExBitStream
                 throw new ArgumentOutOfRangeException("countOfBits", countOfBits, "Count of bits must be greater than zero and less than size of integer.");
             }
 
-            uint result = _Read<uint, UIntUtil>(indexOfBits, countOfBits, ByteUtilManager.UIntUtil);
+            uint result = _Read<uint, UIntUtil>(offset, countOfBits, ByteUtilManager.UIntUtil);
             return result;
         }
 
@@ -407,14 +407,14 @@ namespace ExBitStream
             return result;
         }
 
-        public long ReadInt64(int indexOfBits, int countOfBits)
+        public long ReadInt64(int offset, int countOfBits)
         {
             // we only support 1-64 bits currently, not multiple bytes, and not 0 bits
             if (countOfBits > Native.BitsPerLong || countOfBits <= 0)
             {
                 throw new ArgumentOutOfRangeException("countOfBits", countOfBits, "Count of bits must be greater than zero and less than size of long.");
             }
-            long result = _Read<long, LongUtil>(indexOfBits, countOfBits, ByteUtilManager.LongUtil);
+            long result = _Read<long, LongUtil>(offset, countOfBits, ByteUtilManager.LongUtil);
             return result;
         }
 
@@ -429,14 +429,14 @@ namespace ExBitStream
             return result;
         }
 
-        public ulong ReadUInt64(int indexOfBits, int countOfBits)
+        public ulong ReadUInt64(int offset, int countOfBits)
         {
             // we only support 1-64 bits currently, not multiple bytes, and not 0 bits
             if (countOfBits > Native.BitsPerLong || countOfBits <= 0)
             {
                 throw new ArgumentOutOfRangeException("countOfBits", countOfBits, "Count of bits must be greater than zero and less than size of long.");
             }
-            ulong result = _Read<ulong, ULongUtil>(indexOfBits, countOfBits, ByteUtilManager.ULongUtil);
+            ulong result = _Read<ulong, ULongUtil>(offset, countOfBits, ByteUtilManager.ULongUtil);
             return result;
         }
 
@@ -455,9 +455,9 @@ namespace ExBitStream
             return (char)ReadByte(Native.BitsPerByte);
         }
 
-        public char ReadChar(int indexOfBits)
+        public char ReadChar(int offset)
         {
-            return (char)ReadByte(indexOfBits, Native.BitsPerByte);
+            return (char)ReadByte(offset, Native.BitsPerByte);
         }
 
         public char[] ReadChars(int countOfChars)
@@ -470,13 +470,13 @@ namespace ExBitStream
             return chars;
         }
 
-        public char[] ReadChars(int indexOfBits, int countOfChars)
+        public char[] ReadChars(int offset, int countOfChars)
         {
             char[] chars = new char[countOfChars];
             for (int i = 0; i < countOfChars; i++)
             {
-                chars[i] = ReadChar(indexOfBits);
-                indexOfBits += Native.BitsPerByte;
+                chars[i] = ReadChar(offset);
+                offset += Native.BitsPerByte;
             }
             return chars;
         }
@@ -491,13 +491,13 @@ namespace ExBitStream
             return bytes;
         }
 
-        public byte[] ReadBytes(int indexOfBits, int countOfBytes)
+        public byte[] ReadBytes(int offset, int countOfBytes)
         {
             byte[] bytes = new byte[countOfBytes];
             for (int i = 0; i < countOfBytes; i++)
             {
-                bytes[i] = ReadByte(indexOfBits, Native.BitsPerByte);
-                indexOfBits += Native.BitsPerByte;
+                bytes[i] = ReadByte(offset, Native.BitsPerByte);
+                offset += Native.BitsPerByte;
             }
             return bytes;
         }
@@ -508,9 +508,9 @@ namespace ExBitStream
             return new string(chars);
         }
 
-        public string ReadString(int indexOfBits, int lengthOfStr)
+        public string ReadString(int offset, int lengthOfStr)
         {
-            char[] chars = ReadChars(indexOfBits, lengthOfStr);
+            char[] chars = ReadChars(offset, lengthOfStr);
             return new string(chars);
         }
 
